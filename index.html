@@ -38,8 +38,10 @@ main{padding:24px 0 60px}.surface{border:1px solid var(--line);background:var(--
 <script>
 'use strict';
 // 1) Para guardar resultados en Google Sheets, pega entre las comillas la URL /exec de tu aplicación web de Apps Script.
-// 2) Sin esta URL, toda la actividad funciona; el registro remoto permanece desactivado.
-const GOOGLE_SCRIPT_URL = '';
+// 2) Crea la planilla EN LA CARPETA DE DRIVE que prefieras y vincula el script desde Extensiones > Apps Script.
+// 3) Reemplaza PEGA_AQUI_LA_URL_DE_GOOGLE_APPS_SCRIPT por la dirección completa /exec.
+// 4) Si no se configura, la actividad sigue funcionando y ofrece CSV individual.
+const GOOGLE_SCRIPT_URL = 'PEGA_AQUI_LA_URL_DE_GOOGLE_APPS_SCRIPT';
 
 const $ = id => document.getElementById(id);
 const cosValues = {0:1,30:Math.sqrt(3)/2,45:Math.SQRT1_2,60:.5,90:0,120:-.5,135:-Math.SQRT1_2,150:-Math.sqrt(3)/2,180:-1};
@@ -97,7 +99,7 @@ function numericQ(section,theta){const F=pick(valuesF),d=pick(valuesD),c=cosValu
  candidates=shuffle(candidates.filter(x=>round2(x)!==round2(correctVal)));
  let distractors=[];for(const cnd of candidates)if(!distractors.some(v=>num(v)===num(cnd))){distractors.push(cnd);if(distractors.length===3)break;}
  const options=shuffle([correctVal,...distractors].map(v=>num(v)+' '+unit));const cor=num(correctVal)+' '+unit;
- return {section,F,d,theta,q:isFx?`Si la fuerza aplicada es de ${F} N y forma ${theta}° con el desplazamiento, ¿cuál es Fₓ?`:`Una fuerza de ${F} N desplaza el bloque ${d} m y forma ${theta}° con el movimiento. ¿Qué trabajo realiza?`,correct:cor,options,explain:isFx?`Fₓ = F · cos(θ) = ${F} · cos(${theta}°) ≈ ${num(fx)} N.`:`W = F · d · cos(θ) = ${F} · ${d} · cos(${theta}°) ≈ ${num(W)} J. El trabajo es ${sign(W)}.`};
+ return {section,F,d,theta,q:isFx?`Si la fuerza aplicada es de ${F} N y forma ${theta}° con el desplazamiento, ¿cuál es Fₓ?`:`Un bloque se desplaza ${d} m hacia la derecha. Sobre él actúa una fuerza de ${F} N que forma un ángulo de ${theta}° con el movimiento. ¿Qué trabajo realiza esa fuerza?`,correct:cor,options,explain:isFx?`Fₓ = F · cos(θ) = ${F} · cos(${theta}°) ≈ ${num(fx)} N.`:`W = F · d · cos(θ) = ${F} · ${d} · cos(${theta}°) ≈ ${num(W)} J. El trabajo es ${sign(W)}.`};
 }
 function conceptQ(section,c){const theta=c.q.includes('120°')?120:c.q.includes('90°')?90:60;return {section,F:50,d:10,theta,q:c.q,correct:c.correct,options:shuffle([c.correct,...c.other]),explain:c.explain};}
 function createSection(sec){let concepts=shuffle(sec===0?conceptsFx:conceptsW).slice(0,3).map(c=>conceptQ(sec,c));let chosen=shuffle([0,30,45,60,90,120,180]).slice(0,7);let problems=chosen.map(t=>numericQ(sec,t));return shuffle([...concepts,...problems]);}
@@ -112,8 +114,8 @@ function submitAnswer(selected){if(answered)return;answered=true;const q=questio
 function grade(p){return Math.round((p<.6?1+(p/.6)*3:4+((p-.6)/.4)*3)*10)/10;}
 function finish(){const seconds=Math.round((Date.now()-startTime)/1000),p=correctCount/20,n=grade(p);lastResult={id:sessionId,fecha:new Date().toISOString(),nombre:user.name,curso:user.course,correo:user.email,preguntas:20,aciertos_fuerza:secCorrect[0],aciertos_trabajo:secCorrect[1],aciertos_totales:correctCount,errores:20-correctCount,porcentaje_logro:correctCount*5,nota:n,racha_maxima:best,tiempo_segundos:seconds,respuestas:answers};
  $('quiz-screen').classList.add('hidden');$('summary-screen').classList.remove('hidden');$('final-score').textContent=correctCount+' / 20';$('final-desc').textContent=correctCount>=18?'¡Excelente trabajo!':correctCount>=12?'¡Buen progreso! Revisa los errores para seguir mejorando.':'Sigue practicando: revisa las explicaciones y vuelve a intentarlo.';$('final-one').textContent=secCorrect[0]+'/10';$('final-two').textContent=secCorrect[1]+'/10';$('final-streak').textContent=best;$('final-grade').textContent=n.toFixed(1).replace('.',',');$('progress-bar').style.width='100%';
- $('sheet-status').textContent=GOOGLE_SCRIPT_URL?'Enviando resultados para su registro…':'Registro remoto no configurado. Tu profesor/a debe conectar Google Sheets. Puedes descargar tu resultado CSV.';
- if(GOOGLE_SCRIPT_URL)sendToSheets(lastResult);
+ $('sheet-status').textContent=GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/macros/s/')?'Enviando resultados para su registro…':'Registro remoto no configurado. Tu profesor/a debe conectar Google Sheets. Puedes descargar tu resultado CSV.';
+ if(GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/macros/s/'))sendToSheets(lastResult);
  $('summary-screen').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function sendToSheets(data){try{const resp=await fetch(GOOGLE_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(data),keepalive:true});
